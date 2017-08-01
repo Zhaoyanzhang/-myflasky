@@ -5,11 +5,13 @@ from flask_script import Manager
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from datetime import datetime
-from flask_wtf import Form
+from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 import os
+from flask_script import Shell
+from flask_migrate import Migrate, MigrateCommand
 
 basedir=os.path.abspath(os.path.dirname(__name__))
 
@@ -23,6 +25,8 @@ manager = Manager(app)
 bootstrap=Bootstrap(app)
 moment=Moment(app)
 db=SQLAlchemy(app)
+migrate=Migrate(app,db)
+manager.add_command('db',MigrateCommand)
 
 class Role(db.Model):
 	__tablename__='roles'
@@ -39,9 +43,14 @@ class User(db.Model):
 	def __repr__(self):
 		return '<User %r>'% self.username
 
-class NameForm(Form):
+class NameForm(FlaskForm):
     name = StringField('What is your name?', validators=[Required()])
     submit = SubmitField('Submit')
+
+def make_shell_context():
+	return dict(app=app,db=db,User=User,Role=Role)
+manager.add_command("shell",Shell(make_context=make_shell_context))
+
 
 @app.route('/',methods=['GET','POST'])
 def index():
