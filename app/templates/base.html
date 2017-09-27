@@ -1,4 +1,4 @@
-{% extends "bootstrap/base.html" %}
+﻿{% extends "bootstrap/base.html" %}
 
 {% block title %}Flasky{% endblock %}
 
@@ -7,6 +7,7 @@
 <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 {% endblock %}
+
 
 {% block navbar %}
 <div class="navbar navbar-inverse" role="navigation">
@@ -23,6 +24,15 @@
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 <li><a href="{{ url_for('main.index') }}">Home</a></li>
+            </ul>
+
+            {# link of login/out in nav #}
+            <ul class="nav navbar-nav navbar-right">
+                {% if current_user.is_authenticated %}
+                <li><a href="{{url_for('auth.logout')}}">Sign Out</a></li>
+                {% else %}
+                <li><a href="{{url_for('auth.login')}}">Sign In</a></li>
+                {% endif %}
             </ul>
         </div>
     </div>
