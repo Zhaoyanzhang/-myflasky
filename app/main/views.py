@@ -25,3 +25,24 @@ def index():
     return render_template('index.html',
                            form=form, name=session.get('name'),
                            known=session.get('known', False))
+
+
+
+
+# For Page 101 , try my own decorators
+from ..decorators import admin_required,permission_required
+from flask_login import login_required
+from ..models import Permission
+
+@main.route('/admin')
+@login_required
+@admin_required
+def for_admins_only():
+	return "For Admins page 101"
+
+@main.route('/moderator')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def for_moderators_only():
+	return 'For comment moderators'
+

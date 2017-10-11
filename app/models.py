@@ -30,14 +30,14 @@ class Role(db.Model):
                             Permission.COMMENT|\
                             Permission.WRITE_ARTICLES|\
                             Permission.MODERATE_COMMENTS,False),
-            'Administrator':(Oxff,False)
+            'Administrator':(0xff,False)
             }
         for r in roles:
             role = Role.query.filter_by(name=r).first()
             if role is None:
                 role = Role(name=r)
-            role.permissions=role[r][0]
-            role.default = role[r][1]
+            role.permissions=roles[r][0]
+            role.default = roles[r][1]
             db.session.add(role)
         db.session.commit()
 
