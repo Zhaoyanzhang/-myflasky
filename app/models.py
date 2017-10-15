@@ -1,9 +1,11 @@
+from datetime import datetime
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin,AnonymousUserMixin
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app,request
+import hashlib
 
 #lastest edit at page 97, chapter 9. add permission
 class Role(db.Model):
@@ -107,12 +109,45 @@ class User(UserMixin,db.Model):
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
-    #   chapter 9, Method to detect whether the user has the specified permission. 
+        # chapter 10, avatar
+        if self.email is not None and self.avatar_hash is None:
+            self.avatar_hash=hashlib.md5(self.email.encode('utf-8')).hexdigest()
+    # chapter 9, Method to detect whether the user has the specified permission. 
     def can(self,permissions):
         return self.role is not None and\
             (self.role.permissions & permissions) == permissions
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
+
+    # chapter 10,add more individual info.
+    name= db.Column(db.String(64))
+    location=db.Column(db.String(64))
+    about_me=db.Column(db.Text())
+    member_since=db.Column(db.DateTime(),default=datetime.utcnow)
+    last_seen=db.Column(db.DateTime(),default=datetime.utcnow)
+    def ping(self):
+        self.last_seen=datetime.utcnow()
+        db.session.add(self)
+    
+    #chapter10, introduce a avatar
+    avatar_hash =db.Column(db.String(32))
+    def gravatar(self,size=100,default='identicon',rating='g'):
+        if request.is_secure:
+            url='https://secure.gravatar.com/avatar'
+        else:
+            url='http://www.gravatar.com/avatar'
+        hash=self.avatar_hash or hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.\
+            format(url=url,hash=hash,size=size,default=default,rating=rating)
+    '''
+    def change_email(self,token):
+        pass
+        self.email=new_email
+        self.avatar_hashself.avatar_hash=hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        db.session.add(self)
+    ''' 
+
+ 
 
 #chapter 9, in order to keep consistant in permission detect method, Anonymous Class is created.
 class AnonymousUser(AnonymousUserMixin):

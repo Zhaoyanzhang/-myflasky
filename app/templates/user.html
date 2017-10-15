@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Z Blog - {{ user.username }}{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+
+    {# chapter 10.4 add user's personal favicon#}
+    {# profile_thumbnail is user-defined CSS, concluded in static folder, and imported in base template#}
+    <img class="img-rounded profile-thumbnail" src="{{ user.gravatar(size=256) }}">
+    
+    {# chapter 10.2 page to present user's profile#}
+    <div class="profile-header">
+        <h1>{{ user.username }}</h1>
+        {% if user.name or user.location %}
+        <p>
+            {% if user.name %}{{ user.name }}<br>{% endif %}
+            {% if user.location %}
+                From <a href="http://maps.google.com/?q={{ user.location }}">{{ user.location }}</a><br>
+            {% endif %}
+        </p>
+        {% endif %}
+        {% if current_user.is_administrator() %}
+        <p><a href="mailto:{{ user.email }}">{{ user.email }}</a></p>
+        {% endif %}
+        {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
+        <p>Member since {{ moment(user.member_since).format('L') }}. Last seen {{ moment(user.last_seen).fromNow() }}.</p>
+        
+        {#chapter 10.3 link to edit user's profile #}
+        <p>
+            {% if user == current_user %}
+            <a class="btn btn-default" href="{{ url_for('.edit_profile') }}">Edit Profile</a>
+            {% endif %}
+            {% if current_user.is_administrator() %}
+            <a class="btn btn-danger" href="{{ url_for('.edit_profile_admin', id=user.id) }}">Edit Profile [Admin]</a>
+            {% endif %}
+        </p>
+
+    </div>
+</div>
+{% endblock %}
