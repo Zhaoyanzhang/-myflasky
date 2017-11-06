@@ -1,26 +1,42 @@
+'''
+This file is replaced by teaching file on git when updated to version 12
+The reason is:
+Bug: the name in Follow 'foreign_keys=[Follow.follower_id]' is not defined 
+    can not be solved after repeated attempt.
+Bug solved: class Follow must be prior to class User
+'''
+
 from datetime import datetime
-from . import db
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin,AnonymousUserMixin
-from . import login_manager
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app,request
 import hashlib
+from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from markdown import markdown
 import bleach
+from flask import current_app,request
+from flask_login import UserMixin,AnonymousUserMixin
+from . import db,login_manager
+
+# page97, chapter 9, add permission
+class Permission:
+    FOLLOW  =           0b00000001
+    COMMENT=            0b00000010
+    WRITE_ARTICLES=     0b00000100
+    MODERATE_COMMENTS=  0b00001000
+    ADMINISTER=         0b10000000
 
 #lastest edit at page 97, chapter 9. add permission
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
-    users = db.relationship('User', backref='role', lazy='dynamic')
-    def __repr__(self):
-        return '<Role %r>' % self.name
-
     #permission var
     default=db.Column(db.Boolean,default=False,index=True)
     permissions=db.Column(db.Integer)
+    users = db.relationship('User', backref='role', lazy='dynamic')
+    
+    def __repr__(self):
+        return '<Role %r>' % self.name
+
     
     #permission functions
     @staticmethod
@@ -45,15 +61,16 @@ class Role(db.Model):
             db.session.add(role)
         db.session.commit()
 
-# page97, chapter 9, add permission
-class Permission:
-    FOLLOW  =           0b00000001
-    COMMENT=            0b00000010
-    WRITE_ARTICLES=     0b00000100
-    MODERATE_COMMENTS=  0b00001000
-    ADMINISTER=         0b10000000
 
-
+#chapter 12 add function:  follow eachother
+'''
+Bug solved: Class Follow must be defined prior to User, because it is quoted by User.
+'''
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # page 99,chapter 9. Add Role with permissions to User
@@ -68,6 +85,17 @@ class User(UserMixin,db.Model):
     confirmed =db.Column(db.Boolean,default=False)
     # Chapter 11 Blog engine
     posts=db.relationship('Post',backref='author',lazy='dynamic')
+    #chapter 12 add function:follow
+    followed = db.relationship('Follow',
+                                foreign_keys=[Follow.follower_id],
+                                backref=db.backref('follower', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
+    followers = db.relationship('Follow',
+                                foreign_keys=[Follow.followed_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
 
     @property
     def password(self):
@@ -116,6 +144,9 @@ class User(UserMixin,db.Model):
         # chapter 10, avatar
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash=hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        # chapter 12 follow himself to show his post on his own homepage
+        self.followed.append(Follow(followed=self))
+
     # chapter 9, Method to detect whether the user has the specified permission. 
     def can(self,permissions):
         return self.role is not None and\
@@ -172,7 +203,35 @@ class User(UserMixin,db.Model):
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
-      
+    
+    
+    def is_following(self,user):
+        return self.followed.filter_by(followed_id=user.id).first() is not None
+    def is_followed_by(self,user):
+        return self.followers.filter_by(follower_id=user.id).first() is not None
+    def follow(self,user):
+        if not self.is_following(user):
+            f=Follow(follower=self,followed=user)
+            db.session.add(f)
+    def unfollow(self,user):
+        f=self.followed.filter_by(followed_id=user.id).first()
+        if f:
+            db.session.delete(f)
+    
+    #chapter 12 find posts which is drafted by his idols
+    @property
+    def followed_posts(self):
+        return Post.query.join(Follow,Follow.followed_id==Post.author_id)\
+                .filter(Follow.follower_id==self.id)
+    # chapter 12 follow himself to show his post on his own homepage
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
+
 
 #chapter 9, in order to keep consistant in permission detect method, Anonymous Class is created.
 class AnonymousUser(AnonymousUserMixin):
@@ -182,6 +241,8 @@ class AnonymousUser(AnonymousUserMixin):
         return False
 
 login_manager.anonymous_user = AnonymousUser
+
+
 
 #Chapter 11 Blog engine
 class Post(db.Model):
@@ -216,16 +277,6 @@ class Post(db.Model):
                 ,tags=allowed_tags,strip=True))
 
 db.event.listen(Post.body,'set',Post.on_changed_body)
-
-
-
-
-
-
-
-
-
-
 
 
 

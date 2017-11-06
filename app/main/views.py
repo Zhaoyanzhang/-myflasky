@@ -1,4 +1,5 @@
-from flask import render_template, session, redirect, url_for, current_app,flash,request
+from flask import render_template, session, redirect, url_for, current_app,flash,request,\
+        abort,make_response
 from .. import db
 from ..models import User,Role,Post
 from ..email import send_email
@@ -6,6 +7,7 @@ from . import main
 from .forms import NameForm,EditProfileForm,EditProfileAdminForm,PostForm
 from flask_login import current_user
 
+#last edit on chapter 12
 @main.route('/', methods=['GET', 'POST'])
 def index():
     form = PostForm()
@@ -14,12 +16,20 @@ def index():
         post=Post(body=form.body.data,author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-#   posts=Post.query.order_by(Post.timestamp.desc()).all()
     page=request.args.get('page',1,type=int)
-    pagination=Post.query.order_by(Post.timestamp.desc()).paginate(\
+#   posts=Post.query.order_by(Post.timestamp.desc()).all()
+    show_followed=False
+    if current_user.is_authenticated:
+        show_followed=bool(request.cookies.get('show_followed',''))
+    if show_followed:
+        query =current_user.followed_posts
+    else:
+        query = Post.query
+    pagination=query.order_by(Post.timestamp.desc()).paginate(\
             page,per_page=15,error_out=False)
     posts=pagination.items
-    return render_template('index.html',form=form,posts=posts,pagination=pagination)
+    return render_template('index.html',form=form,posts=posts,pagination=pagination\
+            ,show_followed=show_followed)
 
 
 
@@ -118,6 +128,104 @@ def edit(id):
         return redirect(url_for('.post',id=post.id))
     form.body.data=post.body
     return render_template('edit_post.html',form=form)
+
+#chapter12 button follow to follow/unfollow sb
+@main.route('/follow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def follow(username):
+    user=User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user')
+        return redirect(url_for('.index'))
+    if current_user.is_following(user):
+        flash('You are already following this user')
+        return redirect(url_for('.user',username=username))
+    current_user.follow(user)
+    flash('You are now following %s' % username)
+    return redirect(url_for('.user',username=username))
+
+@main.route('/unfollow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def unfollow(username):
+    user=User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user')
+        return redirect(url_for('.index'))
+    if not current_user.is_following(user):
+        flash('You are not following this user')
+        return redirect(url_for('.user',username=username))
+    current_user.unfollow(user)
+    flash('You are not following %s any more'% username)
+    return redirect(url_for('.user',username=username))
+
+
+#chapter 12 a page to show followers
+@main.route('/followers/<username>')
+def followers(username):
+    user=User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user')
+        return redirect(url_for('.index'))
+    page=request.args.get('page',1,type=int)
+    pagination=user.followers.paginate(page,per_page=15,error_out=False)
+    follows=[{'user':item.follower,'timestamp':item.timestamp} for item in pagination.items]
+    return render_template('followers.html',user=user,title="Followers of",\
+            endpoint='.followers',pagination=pagination,follows=follows)
+
+@main.route('/followed_by/<username>')
+def followed_by(username):
+    user=User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user')
+        return redirect(url_for('.index'))
+    page = request.args.get('page',1,type=int)
+    pagination=user.followed.paginate(page,per_page=15,error_out=False)
+    followed_by=[{'user':item.followed,'timestamp':item.timestamp} for item in pagination.items]
+    return render_template('followers.html',user=user,title="Followed_by",\
+            endpoint='.followed_by',pagination=pagination,follows=followed_by)
+
+#chapter12 set cookies to select show_followed or show_all in mainpage
+@main.route('/all')
+@login_required
+def show_all():
+    resp=make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed','',max_age=30*24*3600)
+    return resp
+
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp=make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed','1',max_age=30*24*3600)
+    return resp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
