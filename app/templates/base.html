@@ -1,6 +1,6 @@
 ﻿{% extends "bootstrap/base.html" %}
 
-{% block title %}Flasky{% endblock %}
+{% block title %}Z_blog{% endblock %}
 
 {% block head %}
 {{ super() }}
@@ -43,6 +43,9 @@
                 <li><a href="{{url_for('auth.logout')}}">Sign Out</a></li>
                 {% else %}
                 <li><a href="{{url_for('auth.login')}}">Sign In</a></li>
+                {% endif %}
+                {% if current_user.can(Permission.MODERATE_COMMENTS)%}
+                <li><a href="{{url_for('main.moderate')}}">Morderate Comments</a></li>
                 {% endif %}
             </ul>
         </div>
