@@ -82,8 +82,8 @@ class User(UserMixin,db.Model):
     password_hash=db.Column(db.String(128))
     confirmed =db.Column(db.Boolean,default=False)
     # Chapter 11,13 Blog engine and comments
-    posts=db.relationship('Post',backref='author',lazy='dynamic')
-    comments=db.relationship('Comment',backref='post',lazy='dynamic')
+    posts   =db.relationship('Post',   backref='author',lazy='dynamic')
+    comments=db.relationship('Comment',backref='author',lazy='dynamic')
     #chapter 12 add function:follow
     followed = db.relationship('Follow',
                                 foreign_keys=[Follow.follower_id],
@@ -276,7 +276,7 @@ class Post(db.Model):
         target.body_html=bleach.linkify(bleach.clean(markdown(value,output_format='html')\
                 ,tags=allowed_tags,strip=True))
 
-def Comment(db.Model):
+class Comment(db.Model):
     __tablename__='comments'
     id =db.Column(db.Integer,primary_key=True)
     body=db.Column(db.Text)
@@ -284,7 +284,7 @@ def Comment(db.Model):
     timestamp=db.Column(db.DateTime,index=True,default=datetime.utcnow)
     disabled=db.Column(db.Boolean)
     author_id=db.Column(db.Integer,db.ForeignKey('users.id'))
-    post_id=db.Column(db.Integer,db.ForeignKey('posts.id'))
+    post_id  =db.Column(db.Integer,db.ForeignKey('posts.id'))
     @staticmethod
     def on_changed_body(target,value,oldvalue,initiator):
         allowed_tags=['a','abbr','acronym','b','code','em','i','strong']

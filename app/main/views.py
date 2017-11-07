@@ -1,7 +1,7 @@
 from flask import render_template, session, redirect, url_for, current_app,flash,request,\
         abort,make_response
 from .. import db
-from ..models import User,Role,Post
+from ..models import User,Role,Post,Permission,Comment
 from ..email import send_email
 from . import main
 from .forms import NameForm,EditProfileForm,EditProfileAdminForm,PostForm,CommentForm
@@ -195,7 +195,7 @@ def followed_by(username):
 def show_all():
     resp=make_response(redirect(url_for('.index')))
     resp.set_cookie('show_followed','',max_age=30*24*3600)
-     return resp
+    return resp
 
 @main.route('/followed')
 @login_required
@@ -203,7 +203,7 @@ def show_followed():
     resp=make_response(redirect(url_for('.index')))
     resp.set_cookie('show_followed','1',max_age=30*24*3600)
     return resp
-
+    
 #chapter13 add comments
 @main.route('/post/<int:id>',methods=['GET','POST'])
 def post(id):
@@ -218,9 +218,9 @@ def post(id):
     if page == -1:
         page=(post.comments.count()-1)/15+1
     pagination=post.comments.order_by(Comment.timestamp.asc()).\
-            pagniate(page,per_page=15,error_out=False)
+            paginate(page,per_page=15,error_out=False)
     comments=pagination.items
-    return render_template('post.html',post=[post],form=form,comments=comments,pagination=pagination)
+    return render_template('post.html',posts=[post],form=form,comments=comments,pagination=pagination)
 
 
 @main.route('/moderate')
