@@ -12,6 +12,10 @@
 
 {% block navbar %}
 <div class="navbar navbar-inverse" role="navigation">
+    {# change by my self#}
+    <div class="col-xs-3 col-md-3"><a href="{{url_for('main.index')}}"><img src="{{url_for('static',filename='logo.png')}}" title="logo" alt="logo" height='52px'></a></div>
+    <div class="col-xs-9 col-md-9">
+    {# change by my self#}
     <div class="container">
         <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -20,7 +24,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">ZBLOG</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">Z-Blog</a>
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
@@ -48,6 +52,7 @@
                 <li><a href="{{url_for('main.moderate')}}">Morderate Comments</a></li>
                 {% endif %}
             </ul>
+        </div>
         </div>
     </div>
 </div>

@@ -230,7 +230,7 @@ def moderate():
     page=request.args.get('page',1,type=int)
     pagination=Comment.query.order_by(Comment.timestamp.desc()).\
             paginate(page,per_page=15,error_out=False)
-    commments=pagination.items
+    comments=pagination.items
     return render_template('moderate.html',comments=comments,pagination=pagination,page=page)
 
 @main.route('/moderate/enable/<int:id>')
